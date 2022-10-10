@@ -6,9 +6,9 @@ using DifferentialEquations
 # 1d elastic collision with 2 masses
 Mx = 1
 My = 100
-# My = 1000
+# My = 101 # with 101, the simulation never finishes
 @parameters t rx = 0.5 ry = 0.5 mx = Mx my = My wall1 = 0 wall2 = 10
-sts = @variables x(t) = 2.0 y(t) = 5.0 vx(t) = 0.0 vy(t) = -1.0
+sts = @variables x(t) = 0.5 y(t) = 1 vx(t) = 0.0 vy(t) = -1.0
 D = Differential(t)
 eqs = [
     D(y) ~ vy,
@@ -33,34 +33,19 @@ function affect!(integ, u, p, ctx)
     integ.u[u.vx] = Symbolics.value(new_vx)
     integ.u[u.vy] = Symbolics.value(new_vy)
     global N_COLLISIONS += 1
-    @info (integ.u[u.x], vx), (integ.u[u.y], vy), N_COLLISIONS
-
-    term_affect!(integ, u, p, ctx)
-    nothing
-end
-
-# condition(u, t, integrator) = u[2] > 0
-function term_affect!(integrator, u, p, ctx)
-    vx_t = integrator.u[u.vx]
-    foo = sqrt(p.mx) * vx_t
-    if foo > 0 && foo < vx_t
-        @info "terminating at $(integrator.t)"
-        terminate!(integrator)
-    end
+    # @info (integ.u[u.x], vx), (integ.u[u.y], vy), N_COLLISIONS
     nothing
 end
 
 function reflect_affect!(integrator, u, p, ctx)
     integrator.u[u.vx] = -integrator.u[u.vx]
     global N_COLLISIONS += 1
-    term_affect!(integrator, u, p, ctx)
     nothing
 end
 
 continuous_events = [
     [x ~ 0] => (reflect_affect!, [vx, vy], [mx, my], nothing),
     [x ~ y, y ~ x] => (affect!, [vx, vy, x, y], [mx, my], nothing)
-    # [y ~ 10] => [vy ~ -vy]
 ]
 
 global N_COLLISIONS = 0
@@ -70,11 +55,11 @@ sys = structural_simplify(elastic)
 tspan = (0, 1e3)
 prob = ODEProblem(sys, [], tspan; saveat=0.1)
 sol = solve(prob)
+N_COLLISIONS
 # plot(sol)
 nsteps = 500
 saves = range(tspan..., length=nsteps)
 solitp = sol(saves)
-N_COLLISIONS
 
 anim = @animate for i in 1:length(solitp)
     cur_vx = solitp[vx][i]
