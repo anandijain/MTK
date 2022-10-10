@@ -5,7 +5,7 @@ using DifferentialEquations
 
 # 1d elastic collision with 2 masses
 Mx = 1
-My = 2
+My = 10
 @parameters t rx = 0.5 ry = 0.5 mx = Mx my = My wall1 = 0 wall2 = 10
 sts = @variables x(t) = 2.0 y(t) = 5.0 vx(t) = 0.0 vy(t) = -1.0
 D = Differential(t)
@@ -36,16 +36,18 @@ end
 
 continuous_events = [
     [(x - rx) ~ 0] => [vx ~ -vx],
-    [(x + rx) ~ (y - ry), (y - ry)~ (x + rx) ] => (affect!, [vx, vy], [mx, my], nothing),
-    # [( + rx) ~ (y - ry)] => (affect!, [vx, vy], [mx, my], nothing),
+    [(x + rx) ~ (y - ry), (y - ry) ~ (x + rx)] => (affect!, [vx, vy], [mx, my], nothing),
+    [(y + ry) ~ 10] => [vy ~ -vy]
 ]
 
 @named elastic = ODESystem(eqs, t, sts, [mx, my, rx, ry]; continuous_events)
 old_sts = states(elastic)
 sys = structural_simplify(elastic)
-prob = ODEProblem(sys, [], (0, 50); saveat=0.1)
+tspan = (0, 50)
+prob = ODEProblem(sys, [], tspan; saveat=0.1)
 sol = solve(prob)
-plot(sol)
+# sol = solve(prob, Rosenbrock23())
+# plot(sol)
 nsteps = 500
 saves = range(tspan..., length=nsteps)
 solitp = sol(saves)
@@ -65,4 +67,3 @@ anim = @animate for i in 1:length(solitp)
 end
 mp4(anim, "elastic_with_radius_$(My).mp4", fps=60)
 @info "anim"
-
