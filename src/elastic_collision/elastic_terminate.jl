@@ -5,7 +5,8 @@ using DifferentialEquations
 
 # 1d elastic collision with 2 masses
 Mx = 1
-My = 1000
+My = 100
+# My = 1000
 @parameters t rx = 0.5 ry = 0.5 mx = Mx my = My wall1 = 0 wall2 = 10
 sts = @variables x(t) = 2.0 y(t) = 5.0 vx(t) = 0.0 vy(t) = -1.0
 D = Differential(t)
