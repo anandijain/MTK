@@ -43,7 +43,8 @@ continuous_events = [
 @named elastic = ODESystem(eqs, t, sts, [mx, my]; continuous_events)
 old_sts = states(elastic)
 sys = structural_simplify(elastic)
-prob = ODEProblem(sys, [], (0, 50); saveat=0.1)
+tspan = (0, 50)
+prob = ODEProblem(sys, [], tspan; saveat=0.1)
 sol = solve(prob)
 # plot(sol)
 
