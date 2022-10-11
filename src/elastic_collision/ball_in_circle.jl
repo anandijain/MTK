@@ -5,13 +5,11 @@ using DifferentialEquations
 
 # ball bouncing in circle
 Mx = 1
-My = 100
-R1 = 1 # start with no width
-R2 = 5
+R1 = 5
 G = 10
 
 # My = 101 # with 101, the simulation never finishes
-@parameters t rx = 0.5 ry = 0.5 mx = Mx my = My r = R1 g = G
+@parameters t rx = 0.5 ry = 0.5 mx = Mx r = R1 g = G
 sts = @variables x(t) = 1 y(t) = -1 vx(t) = 0.0 vy(t) = 0
 D = Differential(t)
 eqs = [
@@ -33,29 +31,29 @@ function affect_bounce!(integ, u, p, ctx)
     theta = atan(y_t, x_t)
     rm = [cos(theta) sin(theta); -sin(theta) cos(theta)]
     rmi = [cos(theta) -sin(theta); sin(theta) cos(theta)]
-    vxn, vyn = rm * [vx_t; vy_t]
+    vxn, vyn = rm * [vx_t, vy_t]
     vyn -= vyn
-    vxn, vyn = rmi * [vxn; vyn]
+    vxn, vyn = rmi * [vxn, vyn]
     integ.u[u.vx] = vxn
     integ.u[u.vy] = vyn
-    # @info "triggered" x_t, vx_t, y_t, vy_t, vxn, vyn
+    @info "triggered" (x_t, y_t), (vx_t, vy_t), vxn, vyn
 
     global N_COLLISIONS += 1
     nothing
 end
 
 continuous_events = [
-    [(x^2 + (y)^2)^1 / 2 ~ r] => (affect_bounce!, [vx, vy, x, y], [], nothing)
+    [(x^2 + y^2) ~ r^2] => (affect_bounce!, [vx, vy, x, y], [], nothing)
     # [y ~ -5] => [vy ~ -vy] # this affect works 
 ]
-cbs = CallbackSet(ContinuousCallback(condition, affect_bounce!))
+# cbs = CallbackSet(ContinuousCallback(condition, affect_bounce!))
 global N_COLLISIONS = 0
 @named ball = ODESystem(eqs, t, sts, [mx, g, r]; continuous_events)
-@named ball = ODESystem(eqs, t, sts, [mx, g, r])# ; continuous_events)
+# @named ball = ODESystem(eqs, t, sts, [mx, g, r])# ; continuous_events)
 old_sts = states(ball)
 sys = structural_simplify(ball)
 tspan = (0, 5)
-prob = ODEProblem(sys, [], tspan; saveat=0.1, callback=cbs)
+prob = ODEProblem(sys, [], tspan; saveat=0.1)#, callback=cbs)
 sol = solve(prob)
 N_COLLISIONS
 # plot(sol)
