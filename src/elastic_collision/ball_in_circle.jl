@@ -21,6 +21,13 @@ eqs = [
     D(vx) ~ 0
 ]
 
+function condition(u, t, integrator)
+    x = u[3]
+    y = u[1]
+    r = integrator.p[3]
+    x^2 + y^2 - r^2
+end
+
 function affect_bounce!(integ, u, p, ctx)
     x_t, vx_t, y_t, vy_t = integ.u[[u.x, u.vx, u.y, u.vy]]
     theta = atan(y_t, x_t)
@@ -41,14 +48,14 @@ continuous_events = [
     [(x^2 + (y)^2)^1 / 2 ~ r] => (affect_bounce!, [vx, vy, x, y], [], nothing)
     # [y ~ -5] => [vy ~ -vy] # this affect works 
 ]
-
+cbs = CallbackSet(ContinuousCallback(condition, affect_bounce!))
 global N_COLLISIONS = 0
 @named ball = ODESystem(eqs, t, sts, [mx, g, r]; continuous_events)
-# @named ball = ODESystem(eqs; continuous_events)
+@named ball = ODESystem(eqs, t, sts, [mx, g, r])# ; continuous_events)
 old_sts = states(ball)
 sys = structural_simplify(ball)
 tspan = (0, 5)
-prob = ODEProblem(sys, [], tspan; saveat=0.1)
+prob = ODEProblem(sys, [], tspan; saveat=0.1, callback=cbs)
 sol = solve(prob)
 N_COLLISIONS
 # plot(sol)
