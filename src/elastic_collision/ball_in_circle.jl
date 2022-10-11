@@ -65,17 +65,11 @@ anim = @animate for i in 1:length(solitp)
 
     last_ten = maximum([1, i - 10]):i
     nlast = length(last_ten)
-    # ncs = round(Int, solitp[n_collisions][i])
     curt = solitp.t[i]
     plot_t = round(Int, curt)
-    # myplot = plot(solitp[x][last_ten], , zeros(nlast); title="t = $(plot_t)", xlims=(0, 10), ylims=(-5, 5))#, $([solitp.u[1, i], solitp.u[2, i]])")
     hyp = sqrt(cur_x ^2 + cur_y^2)
     myplot = scatter([cur_x], [cur_y], title="t = $(plot_t), $hyp"; xlims=(-6, 6), ylims=(-6, 6))
     plot!(myplot, 5 * cos.(0:0.01:2pi), 5 * sin.(0:0.01:2pi); xlims=(-6, 6), ylims=(-6, 6))
-    # plot(5 * cos.(0:0.01:2pi), 5* sin.(0:0.01:2pi); xlims=(-6, 6), ylims=(-6, 6))
-    # scatter!(myplot, [solitp[x][i]], [0.0]; ms=log(Mx) + 1)#, texts=["$cur_vx"])
-    # plot!(myplot, solitp[y][last_ten], zeros(nlast))
-    # scatter!(myplot, [solitp[y][i]], [0.0]; ms=log(My) + 1)#, texts=["$cur_vy"])
 end
 mp4(anim, "ball_in_circle.mp4", fps=30)
 @info "anim"
