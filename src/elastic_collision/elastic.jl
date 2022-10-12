@@ -5,7 +5,7 @@ using DifferentialEquations
 
 # 1d elastic collision with 2 masses
 Mx = 1
-My = 100
+My = 10
 @parameters t rx = 0.5 ry = 0.5 mx = Mx my = My wall1 = 0 wall2 = 10
 sts = @variables x(t) = 2.0 y(t) = 5.0 vx(t) = 0.0 vy(t) = -1.0
 D = Differential(t)
@@ -15,7 +15,6 @@ eqs = [
     D(x) ~ vx,
     D(vx) ~ 0
 ]
-
 function affect!(integ, u, p, ctx)
     @variables vxx vyy
     vy = integ.u[u.vy]
@@ -34,18 +33,74 @@ function affect!(integ, u, p, ctx)
     nothing
 end
 
+
+function affect_nosym!(integ)
+
+    # vxi = 2
+    # vyi = 4
+    @variables vxx vyy
+    vx = integ.u[VX_IDX]
+    vy = integ.u[VY_IDX]
+    mx, my = integ.p
+    eq1 = mx * vx + my * vy ~ mx * vxx + my * vyy
+    eq2 = 1 // 2 * mx * (vx^2) + 1 // 2 * my * (vy^2) ~ 1 // 2 * mx * (vxx^2) + 1 // 2 * my * (vyy^2)
+
+    eq2 = substitute(eq2, Dict(vxx => solve_for(eq1, vxx)))
+    vyysol = simplify.(solve_single_eq(eq2, vyy.val))
+    @info typeof(vyysol)
+    new_vy = filter(x -> x.rhs != vy, vyysol)[1].rhs
+    new_vx = solve_for(substitute(eq1, Dict(vyy => new_vy)), vxx)
+
+    integ.u[vxi] = Symbolics.value(new_vx)
+    integ.u[vyi] = Symbolics.value(new_vy)
+    nothing
+end
+
+# todo test that using condition as function bounces back on x - y
+# function condition(u, t, integrator)
+#     x = u[3]
+#     y = u[1]
+#     x - y
+# end
+X_IDX = 1
+Y_IDX = 2
+VX_IDX = 3
+VY_IDX = 4
+function condition(out, u, t, integrator)
+    # for out in
+    out[1] = u[X_IDX]
+    out[2] = u[Y_IDX] - u[X_IDX]
+    out[3] = u[Y_IDX] - 10
+end
+
+function affect_all!(integ, idx)
+    if idx == 1
+        integ.u[X_IDX] *= -1
+    elseif idx == 2
+        affect_nosym!(integ)
+    elseif idx == 3
+        integ.u[Y_IDX] *= -1
+    end
+end
+
+
 continuous_events = [
     [x ~ 0] => [vx ~ -vx]
+    # [x ~ y, y ~ x] => (affect!, [vx, vy], [mx, my], nothing)
     [x ~ y, y ~ x] => (affect!, [vx, vy], [mx, my], nothing)
     [y ~ 10] => [vy ~ -vy]
 ]
-
+cbs = VectorContinuousCallback(condition, affect_all!, 3)
 @named elastic = ODESystem(eqs, t, sts, [mx, my]; continuous_events)
+@named elastic = ODESystem(eqs, t, sts, [mx, my])#; continuous_events)
 old_sts = states(elastic)
+sys = elastic
 sys = structural_simplify(elastic)
 tspan = (0, 50)
 prob = ODEProblem(sys, [], tspan; saveat=0.1)
-sol = solve(prob)
+prob = ODEProblem(sys, [], tspan; saveat=0.1,callback=cbs)
+integ = init(prob, Tsit5())
+sol = solve(prob, Tsit5())
 # plot(sol)
 
 anim = @animate for i in 1:length(sol)
