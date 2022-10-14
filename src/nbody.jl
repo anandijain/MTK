@@ -90,28 +90,35 @@ saveat = abs(-(tspan...) / Npts)
 prob = ODEProblem(sys, velocity_u0, tspan; saveat)
 @info "prob"
 
-sol = solve(prob)
+using OrdinaryDiffEq
+const cfun = ODEFunction{true}(nbody);
+prob = SecondOrderODEProblem((out, du, u, p, t) -> cfun.f(out, u, p, t), zeros(length(states(nbody))), map(v -> ModelingToolkit.defaults(nbody)[v], states(nbody)), (0, 5000.0), map(v -> ModelingToolkit.defaults(nbody)[v], parameters(nbody)));
+sol = solve(prob, VelocityVerlet(), dt=1e-2);
+sol = solve(prob, DPRKN12());
+
+# sol = solve(prob)
 @info "sol $(sol.retcode)"
 
 # sol = solve(prob, Tsit5())
-df = DataFrame(sol)
+df = DataFrame(sol(range(0, 5000, length=30 * 5)))
 
-plot(sol)
-plot(sol[old_sts])
-plot(sol[R[:, 1]], vars=R[:, 1])
+# plot(sol)
+# plot(sol[old_sts])
+# plot(sol[R[:, 1]], vars=R[:, 1])
+
 ts = df.timestamp
 vel = df[:, 3:2:end]
 pos = df[:, 2:2:end]
 
-anim = @animate for i in 1:50:size(df, 1)
-    myplot = Plots.plot(;title=df.timestamp[i])
+anim = @animate for i in 1:size(df, 1)
+    myplot = Plots.plot(; title=df.timestamp[i])
     for j in 1:3:(3*N-2)
         plot3d!(myplot, pos[1:i, j], pos[1:i, j+1], pos[1:i, j+2], label="$j")
         scatter3d!(myplot, [pos[i, j]], [pos[i, j+1]], [pos[i, j+2]]; markersize=masses[ceil(Int, j // 3)])
     end
 end
 
-gif(anim, "some_file_name.gif", fps=60)
+mp4(anim, "hi.mp4", fps=30)
 @info "gif"
 
 # wavwrite(arr[1:2, :]', 44100, "foo.wav")
@@ -153,7 +160,7 @@ function convert_frame(f)
     f = map(clamp01nan, f)
     convert.(save_pix_t, f)
 end
-function convert_frames(fs;save_pix_t = RGB{N0f8})
+function convert_frames(fs; save_pix_t=RGB{N0f8})
     frames = Matrix{save_pix_t}[]
     for i in 1:length(fs)
         # frame = reshape(getindex.(pixs, i), (N, N))
@@ -189,13 +196,16 @@ function my_resize(img, amt)
     new_img
 end
 
-newfs= map(f->my_resize(f, 100), fs)
+newfs = map(f -> my_resize(f, 100), fs)
 VideoIO.save("wacky.mp4", newfs, framerate=60)
 
 xwacky = [Array{RGB{N0f8},2}(undef, new_size...) for _ in 1:60*10]
 wacky[3]
 wackys = convert_frames(wacky)
 
+
+pic = load("vel_pic.png")
+pic[1, :]
 
 
 
