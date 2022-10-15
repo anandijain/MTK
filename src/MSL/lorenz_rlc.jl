@@ -95,7 +95,7 @@ plot(sol)
 # plot(sol, vars=[x, y, z])
 
 rlc_eqs = [
-    # connect(o.output, v.V)
+    connect(o.output, v.V)
     connect(v.p, r.p)
     connect(r.n, l.p)
     connect(l.n, c.p)
@@ -105,9 +105,10 @@ rlc_eqs = [
 
 lleqs = [
     rlc.l.Lt ~ (abs(lorenz.x) + 1) / 1000,
-    D(rlc.r.Rt) ~ 0,
+    # D(rlc.r.Rt) ~ 0,
     rlc.c.Ct ~ (abs(lorenz.z) + 1) / 1000,
-    rlc.v.V.u ~ (abs(lorenz.x) + 1) / 1000,
+    # rlc.v.V.u ~ (abs(lorenz.x) + 1) / 1000,
+    rlc.r.Rt ~ (abs(lorenz.x) + 1) / 1000,
 ]
 
 
@@ -120,7 +121,7 @@ prob = ODAEProblem(scon, [rlc.r.Rt => 100], (0, 10.0))
 probode = ODEProblem(scon, [rlc.r.Rt => 100], (0, 10.))
 sol = solve(prob)
 sol = solve(probode)
-# plot(sol, vars=[rlc.v.i, rlc.c.v])
+plot(sol, vars=[rlc.v.i, rlc.c.v])
 
 sys = scon
 # function add_zero_diffeqs(sys)
